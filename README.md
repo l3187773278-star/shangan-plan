@@ -1,9 +1,15 @@
 # 上岸计划 · 通用备考版
 
 [![tests](https://github.com/l3187773278-star/shangan-plan/actions/workflows/test.yml/badge.svg)](https://github.com/l3187773278-star/shangan-plan/actions/workflows/test.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](#工程结构)
+
+**简体中文** | [English](README.en.md)
 
 > 一个**零依赖、零构建**的多考试备考助手（PWA）。首次打开走三步配置向导，自动生成备考阶段、关键节点与起步任务；
 > 之后负责倒计时、每日打卡、番茄钟、间隔重复复习与学习统计。数据只存在你自己的浏览器里。
+
+**在线试用**：https://l3187773278-star.github.io/shangan-plan/ —— 手机打开后选「添加到主屏幕」，就能像 App 一样全屏使用，并支持离线。
 
 支持考试类型：考研 / 专升本 / 高考 / 四六级 / 公务员 / 教师资格 / 雅思托福 / 自定义。
 

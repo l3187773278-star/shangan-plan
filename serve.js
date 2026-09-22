@@ -30,8 +30,17 @@ var GZIP_EXT = /\.(html|css|js|json|svg|md|txt)$/i;
 var VIRTUAL = /virtual|vmware|vbox|vethernet|hyper-v|wsl|docker|zerotier|tailscale|loopback|tunnel|bluetooth|pseudo/i;
 
 var server = http.createServer(function (req, res) {
-  var urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
-
+  /* URL 解码要兜住畸形百分号编码：浏览器扩展、爬虫或手工输入的
+     '/%zz'、'/100%' 会让 decodeURIComponent 抛 URIError，
+     未捕获的话整个服务进程会直接退出（曾经真的因此挂掉过一次）。 */
+  var urlPath;
+  try {
+    urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+  } catch (err) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('400 请求地址编码不合法');
+    return;
+  }
 
   /* ===== 局域网同步存储：GET 取云端状态 / PUT 存状态 ===== */
   var SYNC_FILE = path.join(ROOT, '_sync-data.json');
@@ -252,6 +261,15 @@ server.listen(PORT, '0.0.0.0', function () {
   try {
     fs.writeFileSync(path.join(ROOT, '访问地址.txt'), fileLines.join(os.EOL) + os.EOL, 'utf8');
   } catch (e) {}
+
+  /* 兜底：任何未被捕获的异常都不该让本地服务悄悄退出——
+     服务一停，用户那边只是「页面打不开」，很难联想到真实原因。 */
+  process.on('uncaughtException', function (err) {
+    console.error('\n[serve] 未捕获异常（服务继续运行）：', err && err.message ? err.message : err);
+  });
+  process.on('unhandledRejection', function (err) {
+    console.error('\n[serve] 未处理的 Promise 拒绝（服务继续运行）：', err && err.message ? err.message : err);
+  });
 
   try {
     if (process.platform === 'win32') {

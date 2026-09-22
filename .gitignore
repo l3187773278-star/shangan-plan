@@ -1,0 +1,24 @@
+# 系统与编辑器产生的文件
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+.vs/
+
+# 依赖与日志（本项目实际上零依赖，留作防御）
+node_modules/
+npm-debug.log*
+*.log
+
+# 本地运行时产物：局域网同步落地文件、自动生成的访问地址、导出的备份，以及无头浏览器临时目录
+_sync-data.json
+访问地址.txt
+*.bak
+backup-*.json
+shangan-backup-*.json
+test-results/
+edge-profile/
+*.png.tmp

@@ -1,0 +1,17 @@
+{
+  "name": "shangan-plan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "上岸计划 · 通用备考版：零依赖的多考试备考助手 PWA（倒计时 / 番茄钟 / SM-2 间隔重复 / AI 出题 / 局域网双端同步）",
+  "main": "core.js",
+  "scripts": {
+    "start": "node serve.js",
+    "test": "node --test test/",
+    "check": "node --check core.js && node --check app.js && node --check serve.js && node --check sw.js"
+  },
+  "keywords": ["备考", "PWA", "间隔重复", "SM-2", "vanilla-js", "zero-dependency"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

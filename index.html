@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>上岸计划 · 通用备考助手</title>
+<meta name="description" content="上岸计划通用版：按考试类型/学校/专业配置的私人备考助手——每日任务、番茄钟、间隔重复复习、统计打卡、AI 出题、笔记错题本">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preload" href="styles.css" as="style">
+<link rel="preload" href="app.js" as="script">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+
+<!-- ====== SVG 图标库 ====== -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-today" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3.5"/><path d="M8.5 12.2l2.4 2.4 4.8-5.2"/></symbol>
+  <symbol id="i-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="i-review" viewBox="0 0 24 24"><path d="M12 2.5l9 4.9-9 4.9-9-4.9 9-4.9z"/><path d="M3 12.3l9 4.9 9-4.9"/><path d="M3 16.8l9 4.9 9-4.9"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L20 6.5"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4.97 0 9-3.58 9-8 0-2.6-1.3-4.7-2.9-6.4-.6-.6-1.7-.4-1.9.5-.3 1.4-1 2.1-1.9 2.7-.5-2.6-1.8-5.5-4-7.4-.7-.6-1.8-.2-1.8.7 0 1.7-.3 3.2-.9 4.5C6.1 10.3 3 12.8 3 16.5 3 19.6 7.03 22 12 22z"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3h14a1 1 0 0 1 1 1v13l-4 4H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M8 8h8M8 12h8M8 16h4"/></symbol>
+  <symbol id="i-error" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13"/><circle cx="12" cy="16.5" r="0.5" fill="currentColor"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7.5 10.5L12 15l4.5-4.5M4 21h16"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 21V9M7.5 13.5L12 9l4.5 4.5M4 3h16"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5-13-7.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 4.5v15M16 4.5v15"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36"/><path d="M3 4v5h5"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5l10 7L5 19V5z"/><path d="M18 5v14"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7.5 15.5v3M12 10.5v8M16.5 6.5v12"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.8" r="0.6" fill="currentColor"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.3" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-6"/></symbol>
+</svg>
+
+<div id="app">
+
+  <!-- ====== 桌面侧边栏 ====== -->
+  <aside id="sidenav">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+        <rect width="48" height="48" rx="12" fill="#0f766e"/>
+        <path d="M10 31c4.5-9 9-9 13.5 0s9 9 13.5 0" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.85"/>
+        <path d="M24 23V11M19 15.5l5-5 5 5" stroke="#fbbf24" stroke-width="3.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand-text">
+        <div class="brand-name">上岸计划</div>
+        <div class="brand-sub">专升本备考助手</div>
+      </div>
+    </div>
+    <nav class="side-links" id="sidenav-links">
+      <a class="side-link" data-view="today" href="#"><svg class="ic"><use href="#i-today"/></svg>今日</a>
+      <a class="side-link" data-view="plan" href="#"><svg class="ic"><use href="#i-plan"/></svg>计划</a>
+      <a class="side-link" data-view="focus" href="#"><svg class="ic"><use href="#i-focus"/></svg>专注</a>
+      <a class="side-link" data-view="review" href="#"><svg class="ic"><use href="#i-review"/></svg>复习</a>
+      <a class="side-link" data-view="notes" href="#"><svg class="ic"><use href="#i-note"/></svg>笔记</a>
+      <a class="side-link" data-view="more" href="#"><svg class="ic"><use href="#i-more"/></svg>更多</a>
+    </nav>
+    <div class="side-foot" id="side-foot"></div>
+  </aside>
+
+  <!-- ====== 主内容 ====== -->
+  <main id="main">
+    <div id="boot-hint">正在加载…</div>
+
+    <section class="view" id="view-today">
+      <header class="view-head">
+        <div>
+          <h1 id="today-title"></h1>
+          <p class="sub" id="today-sub"></p>
+        </div>
+        <div id="today-streak" class="streak-chip"></div>
+      </header>
+
+      <div id="countdown-card"></div>
+      <div class="mini-stats" id="today-mini"></div>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>今日任务</h2>
+          <div class="card-head-right">
+            <span class="muted" id="today-task-count"></span>
+            <button class="btn btn-ghost btn-sm" data-goto="plan">全部 ›</button>
+          </div>
+        </div>
+        <ul class="task-list" id="today-tasks"></ul>
+        <div class="quick-add" id="quick-add">
+          <input id="qa-input" type="text" placeholder="添加今天的任务，回车即可…" maxlength="80">
+          <select id="qa-subject">
+            <option value="英语">英语</option>
+            <option value="计网">计网</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="card" id="baodi-card">
+        <div class="card-head"><h2>保底三件套</h2><span class="muted">再忙不断线</span></div>
+        <div id="baodi-list"></div>
+        <div id="words-tracker"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>今日复习</h2><span class="muted" id="review-due-count"></span></div>
+        <div id="today-review"></div>
+      </section>
+
+      <section class="card" id="checklist-card">
+        <div class="card-head"><h2>启动备查清单</h2><span class="muted">本周内备齐</span></div>
+        <div id="checklist"></div>
+      </section>
+    </section>
+
+    <section class="view" id="view-plan">
+      <header class="view-head">
+        <div>
+          <h1>学习计划</h1>
+          <p class="sub">按天推进 · 源自《专升本备考学习计划》</p>
+        </div>
+      </header>
+      <div class="date-nav">
+        <button class="icon-btn" id="plan-prev" title="前一天"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="date-nav-center">
+          <div id="plan-date" class="plan-date"></div>
+          <button class="link" id="plan-today">回到今天</button>
+        </div>
+        <button class="icon-btn" id="plan-next" title="后一天"><svg class="ic" style="transform:rotate(180deg)"><use href="#i-back"/></svg></button>
+      </div>
+
+      <section class="card">
+        <ul class="task-list" id="plan-tasks"></ul>
+        <div id="plan-empty" class="empty hidden">这一天还没有任务。规划一下，或者休息一天也可以 🌱</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>添加任务</h2><span class="muted">到所选日期</span></div>
+        <div class="form-row">
+          <input id="plan-add-title" type="text" placeholder="任务内容，如：谢希仁 1.6 体系结构精读" maxlength="120">
+          <select id="plan-add-subject">
+            <option value="英语">英语</option>
+            <option value="计网">计网</option>
+            <option value="其他">其他</option>
+          </select>
+          <button class="btn btn-primary" id="plan-add-btn">添加</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>本周概览</h2></div>
+        <div id="week-overview"></div>
+      </section>
+    </section>
+
+    <section class="view" id="view-focus">
+      <header class="view-head">
+        <div>
+          <h1>专注计时</h1>
+          <p class="sub">番茄钟 · 专注时长自动记入统计</p>
+        </div>
+      </header>
+
+      <div class="subject-chips" id="focus-subjects"></div>
+
+      <div class="timer-ring">
+        <svg viewBox="0 0 260 260">
+          <circle class="ring-bg" cx="130" cy="130" r="118"/>
+          <circle class="ring-fg" id="ring-fg" cx="130" cy="130" r="118"/>
+        </svg>
+        <div class="timer-center">
+          <div class="timer-mode" id="timer-mode">专注</div>
+          <div class="timer-display" id="timer-display">25:00</div>
+          <div class="timer-sub" id="timer-sub">第 1 轮 · 共 4 轮</div>
+        </div>
+      </div>
+
+      <div class="timer-controls">
+        <button class="icon-btn big" id="btn-reset" title="重置"><svg class="ic"><use href="#i-reset"/></svg></button>
+        <button class="btn btn-primary btn-timer" id="btn-start"><svg class="ic" id="btn-start-ic"><use href="#i-play"/></svg><span id="btn-start-label">开始专注</span></button>
+        <button class="icon-btn big" id="btn-skip" title="跳过"><svg class="ic"><use href="#i-skip"/></svg></button>
+      </div>
+
+      <div class="mini-stats" id="focus-today-stats"></div>
+
+      <section class="card">
+        <div class="card-head"><h2>今日专注记录</h2></div>
+        <ul class="session-list" id="focus-log"></ul>
+        <div id="focus-log-empty" class="empty">还没有记录，点上面的「开始专注」吧</div>
+      </section>
+    </section>
+
+    <section class="view" id="view-review">
+      <header class="view-head">
+        <div>
+          <h1>间隔重复复习</h1>
+          <p class="sub">按遗忘曲线安排 · 记不住的会更快再见面</p>
+        </div>
+      </header>
+
+      <div class="mini-stats" id="review-stats"></div>
+
+      <section class="card" id="review-queue-card">
+        <div class="card-head">
+          <h2>今日队列</h2>
+          <span class="muted" id="review-progress"></span>
+        </div>
+        <div id="review-stage">
+          <div class="review-card">
+            <div class="rc-meta"><span class="chip" id="rc-subject"></span><span class="chip chip-ghost" id="rc-chapter"></span></div>
+            <div class="rc-q" id="rc-q"></div>
+            <div class="rc-a hidden" id="rc-a"></div>
+            <button class="btn btn-primary btn-block" id="rc-reveal">显示答案</button>
+            <div class="grade-btns hidden" id="grade-btns">
+              <button class="grade g-again" data-q="1">忘记<small>1分钟后再来</small></button>
+              <button class="grade g-hard" data-q="3">模糊<small>难度加大</small></button>
+              <button class="grade g-good" data-q="4">记得<small>按计划再见</small></button>
+              <button class="grade g-easy" data-q="5">简单<small>轻松掌握</small></button>
+            </div>
+          </div>
+          <div id="review-done" class="hidden">
+            <div class="done-badge">🎉</div>
+            <h3 id="review-done-title">今日复习完成</h3>
+            <p class="muted" id="review-done-sub">现在休息一下，或去加几张新卡片</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>随机自测</h2>
+          <span class="muted">闭卷 · 先想再翻答案</span>
+        </div>
+        <div id="quiz-stage">
+          <p class="muted" id="quiz-empty">点下面按钮，从卡片库随机抽一题考考自己</p>
+          <div class="review-card hidden" id="quiz-card-body">
+            <div class="rc-meta"><span class="chip" id="qz-subject"></span><span class="chip chip-ghost" id="qz-chapter"></span></div>
+            <div class="rc-q" id="qz-q"></div>
+            <div class="rc-a hidden" id="qz-a"></div>
+          </div>
+          <div class="form-row">
+            <button class="btn btn-primary" id="quiz-draw">抽一题</button>
+            <button class="btn btn-ghost hidden" id="quiz-reveal">显示答案</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="ai-card">
+        <div class="card-head">
+          <h2>AI 出题 · DeepSeek</h2>
+          <span class="muted">每晚提问 · 答案自己产出</span>
+        </div>
+        <div class="form-row ai-form">
+          <select id="ai-subject"></select>
+          <input id="ai-topic" type="text" placeholder="范围，如：第4章 / 不定积分 / 长难句">
+          <select id="ai-count"></select>
+          <button class="btn btn-primary" id="ai-gen">出题</button>
+        </div>
+        <div id="ai-loading" class="ai-loading hidden">DeepSeek 正在按考纲出题…</div>
+        <div id="ai-items"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>卡片库</h2>
+          <div class="card-head-right">
+            <span class="muted" id="card-count"></span>
+            <button class="btn btn-ghost btn-sm" id="btn-add-card">+ 新卡片</button>
+          </div>
+        </div>
+        <div class="filter-chips" id="card-filter"></div>
+        <ul class="card-list" id="card-list"></ul>
+        <div id="card-list-empty" class="empty hidden">还没有卡片。把你学过的概念做成「问题+答案」卡片吧</div>
+      </section>
+    </section>
+
+    <section class="view" id="view-more">
+      <header class="view-head"><div><h1>更多</h1><p class="sub">统计 · 目标 · 笔记 · 错题 · 设置</p></div></header>
+      <div class="hub-grid">
+        <button class="hub-card" data-goto="stats"><svg class="ic"><use href="#i-chart"/></svg><div class="hub-name">统计</div><div class="hub-desc">专注时长 · 打卡 · 完成率</div></button>
+        <button class="hub-card" data-goto="goals"><svg class="ic"><use href="#i-target"/></svg><div class="hub-name">目标与倒计时</div><div class="hub-desc">考试日 · 阶段 · 关键节点</div></button>
+        <button class="hub-card" data-goto="notes"><svg class="ic"><use href="#i-note"/></svg><div class="hub-name">学习笔记</div><div class="hub-desc">四行法笔记随手记</div></button>
+        <button class="hub-card" data-goto="errors"><svg class="ic"><use href="#i-error"/></svg><div class="hub-name">错题本</div><div class="hub-desc">错因 · 正解 · 反复看</div></button>
+        <button class="hub-card" data-goto="materials"><svg class="ic"><use href="#i-book"/></svg><div class="hub-name">教材资料</div><div class="hub-desc">课本 · 课件 · 真题链接</div></button>
+        <button class="hub-card" data-goto="settings"><svg class="ic"><use href="#i-settings"/></svg><div class="hub-name">设置与备份</div><div class="hub-desc">番茄钟 · 导出导入</div></button>
+      </div>
+      <section class="card" id="install-card" style="display:none">
+        <div class="card-head"><h2>安装到设备</h2></div>
+        <p class="muted" style="margin:0 0 10px">把「上岸计划」装到桌面/主屏幕，像 App 一样打开，支持离线使用。</p>
+        <button class="btn btn-primary" id="btn-install">安装应用</button>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>关于</h2></div>
+        <div id="about-body"></div>
+      </section>
+    </section>
+
+    <section class="view" id="view-stats">
+      <header class="view-head">
+        <button class="icon-btn" data-goto="more"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div><h1>统计</h1><p class="sub">看见每一步积累</p></div>
+      </header>
+      <div class="summary-grid" id="stats-summary"></div>
+      <section class="card">
+        <div class="card-head"><h2>最近 7 天 · 专注分钟</h2></div>
+        <div class="bar-chart" id="chart-focus"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>最近 7 天 · 任务完成</h2></div>
+        <div class="bar-chart" id="chart-tasks"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>最近 7 天 · 复习卡片数</h2></div>
+        <div class="bar-chart" id="chart-cards"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>本周科目分布</h2></div>
+        <div id="subject-breakdown"></div>
+      </section>
+    </section>
+
+    <section class="view" id="view-goals">
+      <header class="view-head">
+        <button class="icon-btn" data-goto="more"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div><h1>目标与倒计时</h1><p class="sub">阶段路线 · 关键节点 · 里程碑</p></div>
+      </header>
+      <div id="goals-countdown"></div>
+      <section class="card">
+        <div class="card-head"><h2>五个阶段</h2></div>
+        <ol class="phases" id="phases"></ol>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>关键节点</h2></div>
+        <ul class="task-list" id="milestones"></ul>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>我的目标</h2></div>
+        <ul class="task-list" id="mygoals"></ul>
+        <div class="form-row">
+          <input id="goal-add-input" type="text" placeholder="新目标，如：单词累计 2600" maxlength="80">
+          <button class="btn btn-primary" id="goal-add-btn">添加</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="view" id="view-notes">
+      <header class="view-head">
+        <button class="icon-btn" data-goto="more"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div><h1>学习笔记</h1><p class="sub">是什么→解决问题→工作流程→关键字</p></div>
+        <button class="btn btn-primary btn-sm" id="btn-add-note">+ 笔记</button>
+      </header>
+      <div class="filter-chips" id="notes-filter"></div>
+      <input id="notes-search" type="search" placeholder="搜索笔记标题 / 内容…" style="margin-bottom:10px">
+      <ul class="notes-list" id="notes-list"></ul>
+      <div id="notes-empty" class="empty hidden">还没有笔记。学完一个概念，用四行法记下来</div>
+    </section>
+
+    <section class="view" id="view-errors">
+      <header class="view-head">
+        <button class="icon-btn" data-goto="more"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div><h1>错题本</h1><p class="sub">错因想清楚，考场上不再错</p></div>
+        <button class="btn btn-primary btn-sm" id="btn-add-error">+ 错题</button>
+      </header>
+      <div class="filter-chips" id="errors-filter"></div>
+      <ul class="errors-list" id="errors-list"></ul>
+      <div id="errors-empty" class="empty hidden">还没有错题。AI 提问答不出、自测做错的，都记进来</div>
+    </section>
+
+    <section class="view" id="view-materials">
+      <header class="view-head">
+        <button class="icon-btn" data-goto="more"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div><h1>教材资料</h1><p class="sub">课本 PDF · 课件 · 真题 · 全部自己添加</p></div>
+        <button class="btn btn-primary btn-sm" id="btn-add-mat">+ 添加</button>
+      </header>
+      <p class="muted" style="margin:0 2px 12px">点「添加」把资料链接存进来（支持 PDF / 网页 / 网盘地址），电脑和手机都能打开，换设备后导出/导入会一起带走。</p>
+      <section class="card">
+        <div class="card-head"><h2>我的资料</h2><span class="muted" id="materials-count"></span></div>
+        <ul class="errors-list" id="materials-list"></ul>
+      </section>
+    </section>
+
+    <section class="view" id="view-settings">
+      <header class="view-head">
+        <button class="icon-btn" data-goto="more"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div><h1>设置与备份</h1></div>
+      </header>
+      <section class="card">
+        <div class="card-head"><h2>我的考试</h2></div>
+        <div class="setting-row"><label>考试类型</label><select id="set-exam-type"></select></div>
+        <div class="setting-row"><label>考试名称</label><input id="set-label" type="text" placeholder="如：考研 / 专升本 / 四六级"></div>
+        <div class="setting-row"><label>目标学校</label><input id="set-school" type="text" placeholder="（可选）"></div>
+        <div class="setting-row"><label>考试日期</label><input id="set-exam" type="date"></div>
+        <div class="setting-row"><label>科目（逗号分隔）</label><input id="set-subjects" type="text" placeholder="如：英语，数学，专业课"></div>
+        <div class="setting-row"><label>每日记忆目标</label><input id="set-words" type="number" min="10" max="200" step="5"></div>
+        <button class="btn btn-ghost btn-block" id="btn-reconfig">按当前设置重新生成计划骨架</button>
+        <p class="muted" style="margin-top:8px">改完学校 / 科目 / 日期后点上方按钮，阶段与关键节点会按新配置重建（已添加的任务、笔记、记录保留）。</p>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>保底三件套（每天最底线）</h2><span class="muted">再忙不断线</span></div>
+        <div class="setting-row"><label>第 1 项</label><input id="set-baodi1" type="text"></div>
+        <div class="setting-row"><label>第 2 项</label><input id="set-baodi2" type="text"></div>
+        <div class="setting-row"><label>第 3 项</label><input id="set-baodi3" type="text"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>DeepSeek AI 出题</h2></div>
+        <div class="setting-row"><label>API Key</label><input id="set-deepseek" type="password" placeholder="sk-..." autocomplete="off"></div>
+        <p class="muted" style="margin-top:8px">Key 只保存在本机浏览器，直连官方接口。platform.deepseek.com 免费注册后创建（充值几元可用很久）。</p>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>番茄钟（分钟）</h2></div>
+        <div class="setting-row"><label>专注时长</label><input id="set-work" type="number" min="5" max="90" step="5"></div>
+        <div class="setting-row"><label>短休息</label><input id="set-break" type="number" min="1" max="30"></div>
+        <div class="setting-row"><label>长休息</label><input id="set-long" type="number" min="5" max="60"></div>
+        <div class="setting-row"><label>长休息前轮数</label><input id="set-rounds" type="number" min="1" max="10"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>局域网同步</h2><span class="muted" id="sync-badge">检测中…</span></div>
+        <p class="muted" style="margin:0 0 8px">电脑运行「启动.bat」作为同步服务器；手机连同一 WiFi 后用启动窗口里的 PHONE 地址打开，两端改动会在几秒内自动互相合并（任务/打卡/卡片/笔记/错题等全部同步）。纯本机模式（双击 index.html）不做云端同步。</p>
+        <div class="muted" id="sync-info"></div>
+        <div class="form-row" style="margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="btn-sync-now">立即同步</button>
+          <button class="btn btn-ghost btn-sm" id="btn-sync-push">以本机为准上传</button>
+          <button class="btn btn-ghost btn-sm" id="btn-sync-pull">从服务器拉取</button>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>数据</h2></div>
+        <p class="muted">数据只保存在这台设备的浏览器里，不上传任何服务器。换设备时用「导出备份」拿到新设备上「导入恢复」。</p>
+        <div class="form-row">
+          <button class="btn btn-ghost" id="btn-export"><svg class="ic"><use href="#i-download"/></svg>导出备份</button>
+          <button class="btn btn-ghost" id="btn-import"><svg class="ic"><use href="#i-upload"/></svg>导入恢复</button>
+          <button class="btn btn-danger-ghost" id="btn-reset">清空数据</button>
+          <button class="btn btn-ghost" id="btn-dedupe">清理重复数据</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json" style="display:none">
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>手机 / 其他电脑上使用</h2></div>
+        <div id="settings-tips"></div>
+      </section>
+    </section>
+
+  </main>
+
+  <!-- ====== 底部导航（手机） ====== -->
+  <nav id="bottomnav">
+    <a class="bn-item" data-view="today"><svg class="ic"><use href="#i-today"/></svg><span>今日</span></a>
+    <a class="bn-item" data-view="plan"><svg class="ic"><use href="#i-plan"/></svg><span>计划</span></a>
+    <a class="bn-item bn-center" data-view="focus"><svg class="ic"><use href="#i-focus"/></svg><span>专注</span></a>
+    <a class="bn-item" data-view="review"><svg class="ic"><use href="#i-review"/></svg><span>复习</span></a>
+    <a class="bn-item" data-view="notes"><svg class="ic"><use href="#i-note"/></svg><span>笔记</span></a>
+    <a class="bn-item" data-view="more"><svg class="ic"><use href="#i-more"/></svg><span>更多</span></a>
+  </nav>
+</div>
+
+<div id="onboard-root" class="onboard-mask" style="display:none">
+  <div class="onboard">
+    <div class="ob-head">
+      <div class="ob-logo">🛟</div>
+      <div><h2>上岸计划 · 备考配置向导</h2><p class="muted">只需 3 步，软件会按你的考试生成阶段、关键节点与起步任务</p></div>
+      <span class="chip chip-ghost" id="ob-stepbar">第 1 / 3 步</span>
+    </div>
+    <div class="ob-step" data-step="1">
+      <h3>① 你的目标考试属于哪一类？</h3>
+      <div class="ob-tplgrid" id="ob-tplgrid"></div>
+      <div id="ob-phaseinfo" class="ob-phaseinfo muted"></div>
+    </div>
+    <div class="ob-step" data-step="2">
+      <h3>② 目标学校与考试时间</h3>
+      <label class="f-label">考试名称（可改）</label>
+      <input id="ob-label" type="text">
+      <label class="f-label">目标学校 / 报考单位（选填）</label>
+      <input id="ob-school" type="text" placeholder="如：某某大学 / 某某单位">
+      <label class="f-label">考试日期</label>
+      <input id="ob-examdate" type="date">
+    </div>
+    <div class="ob-step" data-step="3">
+      <h3>③ 科目与每日节奏（最后一步）</h3>
+      <label class="f-label">考试科目（用逗号 / 顿号分隔，可增删）</label>
+      <input id="ob-subjects" type="text" placeholder="如：英语，数学，专业课">
+      <label class="f-label">每天记忆 / 背诵目标（个）</label>
+      <input id="ob-words" type="number" min="1" max="500">
+    </div>
+    <div class="ob-actions">
+      <button class="btn btn-ghost" data-ob="prev" id="ob-prev">上一步</button>
+      <button class="btn btn-primary" data-ob="next" id="ob-next">下一步</button>
+      <button class="btn btn-primary hidden" data-ob="finish" id="ob-finish">完成，开始备考 🚀</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+<div id="note-reader" class="note-reader hidden">
+  <div class="note-reader-panel">
+    <div class="note-reader-top">
+      <button class="icon-btn" id="nr-close" title="关闭">×</button>
+      <div class="note-reader-meta" id="nr-meta"></div>
+      <button class="btn btn-ghost btn-sm" id="nr-edit">编辑</button>
+    </div>
+    <h1 id="nr-title"></h1>
+    <div id="nr-body"></div>
+  </div>
+</div>
+<div id="modal-root"></div>
+
+<script src="core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

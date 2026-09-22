@@ -1,0 +1,6 @@
+# 源码统一用 LF 提交，避免 Windows 检出时整库 diff 抖动
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary

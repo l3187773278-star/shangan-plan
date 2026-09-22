@@ -434,6 +434,14 @@
 
   /* ---------------- 双环境导出 ---------------- */
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = core; // Node / 测试
-  if (root) root.SGCore = core; // 浏览器
+  /* 浏览器：同时挂到 SG.core（各模块统一从这里取）与 window.SGCore（历史写法/调试用）。
+     Node：交给 module.exports 供测试 require。
+     注意：必须保证 SG.core 一定存在——views/data/timer 等模块在加载时就会读它，
+     少挂一个名字就会让整个应用在启动阶段直接抛错（页面全白）。 */
+  if (root) {
+    root.SG = root.SG || {};
+    root.SG.core = core;
+    root.SGCore = core;
+  }
+  if (typeof module !== 'undefined' && module.exports) module.exports = core;
 })(typeof window !== 'undefined' ? window : null);

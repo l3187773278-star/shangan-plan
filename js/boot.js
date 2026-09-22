@@ -21,7 +21,7 @@ window.SG = window.SG || {};
   const bus = SG.bus;
   const data = SG.data;
   const timer = SG.timer;
-  const { $, $$, toast, openModal, closeModal, confirmModal, esc } = SG.ui;
+  const { $, $$, toast, openModal, closeModal, confirmModal } = SG.ui;
   const views = SG.views;
 
   /* ---------------- 视图切换 ---------------- */
@@ -81,7 +81,7 @@ window.SG = window.SG || {};
         `<button type="button" class="ob-tpl" data-tpl="${tpl.tpl}">` +
         `<div class="ob-tpl-icon">${tpl.icon}</div>` +
         `<div class="ob-tpl-name">${tpl.name}</div>` +
-        `<div class="ob-tpl-desc">${esc(tpl.desc)}</div></button>`,
+        `<div class="ob-tpl-desc">${CORE.esc(tpl.desc)}</div></button>`,
     ).join('');
   }
 
@@ -742,7 +742,7 @@ window.SG = window.SG || {};
 
   /** 注册 Service Worker（仅 https 或 localhost 下可用）。 */
   function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) return;
+    if (!('serviceWorker' in navigator) || !navigator.serviceWorker) return;
     const isSecure =
       location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     if (!isSecure) return;

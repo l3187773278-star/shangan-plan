@@ -413,6 +413,12 @@ window.SG = window.SG || {};
     const cardWrap = $('.review-card', stage);
     const doneEl = $('#review-done');
 
+    /* 这几个容器在 HTML 里必须存在；缺失说明页面被改坏了，
+       直接抛错比静默少渲染一块更容易定位（renderAll 会打印具体是哪个视图）。 */
+    if (!cardWrap || !doneEl) {
+      throw new Error('复习页容器缺失：.review-card 或 #review-done 未找到');
+    }
+
     if (reviewSession.pos >= reviewSession.queue.length) {
       cardWrap.classList.add('hidden');
       doneEl.classList.remove('hidden');

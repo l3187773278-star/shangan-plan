@@ -90,7 +90,7 @@ Windows 上也可以直接双击 **`启动.bat`**（内部同样是 `node serve.
 ## 测试
 
 ```bash
-npm test          # node --test test/  →  39 条用例
+npm test          # node --test test/  →  50 条用例
 npm run check     # 全部脚本的语法检查
 npm run lint      # ESLint（需先 npm install）
 npm run format    # Prettier（需先 npm install）
@@ -98,7 +98,7 @@ npm run format    # Prettier（需先 npm install）
 
 测试全部零依赖，用 Node 18+ 内置的 `node:test`。
 
-**算法与数据（27 条）**
+**算法与数据（`test/core.test.js`，27 条）**
 
 - SM-2：间隔 1 → 6 → 间隔×难度系数的增长顺序、答错重置与当天重排、难度系数下限 1.3、评分 3/2 的通过边界、旧卡片缺字段时的安全升级；
 - 多端合并：以较新一端为底且不丢另一端记录、同 id 冲突取向、反复合并幂等、每日打卡「任一为真即真」、复习记录去重；
@@ -106,7 +106,7 @@ npm run format    # Prettier（需先 npm install）
 - 数据清理：任务按「日期|科目|标题」去重并优先保留已完成、卡片按「科目|问题」去重；
 - 统计：连续打卡（今天没打卡从昨天起算）、累计打卡、某日专注时长。
 
-**接线契约（12 条）**
+**接线契约（`test/contract.test.js`，12 条）**
 
 拆模块最容易断的不是算法而是接线，所以这些也被断言覆盖：
 
@@ -115,6 +115,15 @@ npm run format    # Prettier（需先 npm install）
 - `index.html` 的脚本加载顺序符合依赖，`sw.js` 缓存清单覆盖全部脚本；
 - 各模块挂载的 `SG.*` 命名空间与调用方一致，`boot.js` 调用的成员确实被导出；
 - SM-2 公式只存在一份，`core.js` 不含 DOM/存储依赖。
+
+**启动冒烟（`test/boot.test.js`，11 条）**
+
+在没有浏览器的环境里真跑一遍启动：用最小假 DOM 依次执行 8 个脚本，断言
+
+- 全部脚本能加载执行完（白屏类问题会被这条直接抓住，并指出是哪个文件哪一行）；
+- 启动过程不写 `console.error`/`console.warn`；
+- 十余个关键容器**确实被写入了内容**（不只是「没报错」），逐个视图切换都不抛错；
+- 模拟点击能走到数据层并落盘；番茄钟能启停；存储不可用时会弹窗而不是静默丢数据。
 
 ## 技术要点
 

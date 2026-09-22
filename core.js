@@ -1,253 +1,439 @@
 'use strict';
 
 /* ============================================================
-   上岸计划 · 通用备考版 —— 核心纯逻辑层（core.js）
+   核心纯逻辑层（core.js）
 
-   为什么单独抽这一层：
-   1. 这里全都是「输入 → 输出」的纯函数，不碰 DOM、不碰 localStorage、
-      不碰任何全局状态，所以在浏览器里能跑，在 Node 测试里也能跑；
-   2. SM-2 间隔重复、多端合并、去重、连续打卡这些算法一旦出错，
-      表现是「数据悄悄丢失」而不报错，必须靠自动化测试守住；
-   3. 同一个文件两种用法，不需要打包工具：
-      - 浏览器：<script src="core.js"></script> → window.SGCore
-      - Node  ：require('./core.js')          → module.exports
+   这一层放的是**算法与数据规则**：日期计算、SM-2 间隔重复、
+   多端合并、去重、连续打卡。它们有三个共同点：
 
-   注意：文件的唯一事实来源是这里。app.js 只负责界面与状态，
-   算法一律调用 SGCore，避免「两份实现慢慢跑偏」。
+   1. 纯函数：同样的输入永远得到同样的输出，不改传入的参数；
+   2. 不碰环境：不读 DOM、不写 localStorage、不取系统时间（需要"今天"
+      的地方一律由调用方传入或注入，所以测试可以固定时间）；
+   3. 双环境可用，且**只有这一份实现**：
+        - 浏览器：<script src="core.js"> → window.SGCore
+        - Node   ：require('./core.js')  → module.exports
+
+   为什么值得单独成层：这些函数算错时不会抛异常，只会让数据
+   悄悄错乱（复习间隔算飞、同步吃掉记录），必须能在 Node 里逐条断言。
    ============================================================ */
 
 (function (root) {
-  var C = {};
+  const core = {};
 
-  /* ---------------- 日期（一律用 'YYYY-MM-DD' 字符串，避开时区坑） ---------------- */
+  /* ---------------- 日期（统一用 'YYYY-MM-DD' 字符串，避开时区坑） ---------------- */
 
-  C.pad2 = function (n) { return n < 10 ? '0' + n : '' + n; };
+  /**
+   * 补零到两位。
+   * @param {number} n
+   * @returns {string}
+   */
+  core.pad2 = (n) => (n < 10 ? `0${n}` : `${n}`);
 
-  C.todayStr = function (d) {
-    d = d || new Date();
-    return d.getFullYear() + '-' + C.pad2(d.getMonth() + 1) + '-' + C.pad2(d.getDate());
+  /**
+   * 取某天的 'YYYY-MM-DD'（默认今天，按本地时区）。
+   * @param {Date} [date]
+   * @returns {string}
+   */
+  core.todayStr = (date) => {
+    const d = date || new Date();
+    return `${d.getFullYear()}-${core.pad2(d.getMonth() + 1)}-${core.pad2(d.getDate())}`;
   };
 
-  /* 按本地时区解析，不用 new Date('2026-09-17')（那个按 UTC 解析，会差一天） */
-  C.parseDate = function (s) {
-    var p = String(s || '').split('-');
-    return new Date(+p[0], +p[1] - 1, +p[2]);
+  /**
+   * 解析日期字符串。
+   * 刻意不用 new Date('2026-09-17')：那样按 UTC 解析，东八区会差一天。
+   * @param {string} dateStr
+   * @returns {Date}
+   */
+  core.parseDate = (dateStr) => {
+    const parts = String(dateStr || '').split('-');
+    return new Date(+parts[0], +parts[1] - 1, +parts[2]);
   };
 
-  C.addDaysStr = function (s, n) {
-    var d = C.parseDate(s);
-    d.setDate(d.getDate() + n);
-    return d.getFullYear() + '-' + C.pad2(d.getMonth() + 1) + '-' + C.pad2(d.getDate());
+  /**
+   * 日期加减天数，返回新的 'YYYY-MM-DD'。
+   * @param {string} dateStr
+   * @param {number} days
+   * @returns {string}
+   */
+  core.addDaysStr = (dateStr, days) => {
+    const d = core.parseDate(dateStr);
+    d.setDate(d.getDate() + days);
+    return core.todayStr(d);
   };
 
-  /* 用 Math.round 抵消夏令时造成的 23/25 小时误差 */
-  C.diffDays = function (a, b) {
-    return Math.round((C.parseDate(b) - C.parseDate(a)) / 86400000);
+  /**
+   * 两个日期相差多少天（b - a）。
+   * 用 round 抵消夏令时造成的 23/25 小时误差。
+   * @param {string} a
+   * @param {string} b
+   * @returns {number}
+   */
+  core.diffDays = (a, b) => Math.round((core.parseDate(b) - core.parseDate(a)) / 86400000);
+
+  /**
+   * 距离目标日期还有几天（可注入"今天"以便测试）。
+   * @param {string} dateStr
+   * @param {string} [today]
+   * @returns {number}
+   */
+  core.daysUntil = (dateStr, today) => core.diffDays(today || core.todayStr(), dateStr);
+
+  /**
+   * 是否同一天。
+   * @param {string} a
+   * @param {string} b
+   * @returns {boolean}
+   */
+  core.sameDay = (a, b) => core.diffDays(a, b) === 0;
+
+  /* ---------------- 基础工具 ---------------- */
+
+  /**
+   * HTML 转义。所有拼进 innerHTML 的用户输入都必须先过这里。
+   * @param {*} value
+   * @returns {string}
+   */
+  core.esc = (value) =>
+    String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  /**
+   * 生成唯一 id：时间戳（36 进制）+ 6 位随机。可加前缀便于排查。
+   * @param {string} [prefix]
+   * @returns {string}
+   */
+  core.uid = (prefix) => {
+    const random = Math.random().toString(36).slice(2, 8);
+    return `${prefix ? `${prefix}-` : ''}${Date.now().toString(36)}${random}`;
   };
 
-  C.daysUntil = function (s, today) { return C.diffDays(today || C.todayStr(), s); };
+  /**
+   * 按骨架补齐缺失字段（只补 undefined，不覆盖已有值）。
+   * @param {Object} target
+   * @param {...Object} skeletons
+   * @returns {Object} target
+   */
+  core.mergeDefaults = (target, ...skeletons) => {
+    const merged = target || {};
+    skeletons.forEach((skeleton) => {
+      Object.keys(skeleton || {}).forEach((key) => {
+        if (merged[key] === undefined) merged[key] = skeleton[key];
+      });
+    });
+    return merged;
+  };
 
   /* ---------------- 数据清理 ---------------- */
 
-  C.esc = function (s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  };
+  /**
+   * 任务去重：键为「日期|科目|标题」，重复时保留已完成的那条。
+   * @param {Array} tasks
+   * @returns {{tasks: Array, removed: number}}
+   */
+  core.dedupeTasks = (tasks) => {
+    const byKey = new Map();
+    let removed = 0;
 
-  /* 生成唯一 id：时间戳(36 进制) + 6 位随机。前缀可选，方便测试与排查 */
-  C.uid = function (prefix) {
-    var rnd = Math.random().toString(36).slice(2, 8);
-    return (prefix ? prefix + '-' : '') + Date.now().toString(36) + rnd;
-  };
-
-  C.mergeDefaults = function (s, d) {
-    s = s || {};
-    var i, k;
-    for (k in d) { if (s[k] === undefined) s[k] = d[k]; }
-    for (i = 0; i < arguments.length; i++) {
-      (function (src) {
-        for (var kk in src) { if (s[kk] === undefined) s[kk] = src[kk]; }
-      })(arguments[i]);
-    }
-    return s;
-  };
-
-  /* 同名任务按「日期|科目|标题」去重，保留已完成的那条；卡片按「科目|问题」去重 */
-  C.dedupeTasks = function (tasks) {
-    var map = {}, out = [], removed = 0, k, title;
-    (tasks || []).forEach(function (t) {
-      if (!t) return;
-      title = String(t.title == null ? '' : t.title).trim();
-      k = (t.date || '') + '|' + (t.subject || '') + '|' + title;
-      if (!map[k]) map[k] = t;
-      else { if (t.done && !map[k].done) map[k] = t; removed++; }
+    (tasks || []).forEach((task) => {
+      if (!task) return;
+      const title = String(task.title == null ? '' : task.title).trim();
+      const key = `${task.date || ''}|${task.subject || ''}|${title}`;
+      const kept = byKey.get(key);
+      if (!kept) {
+        byKey.set(key, task);
+        return;
+      }
+      if (task.done && !kept.done) byKey.set(key, task);
+      removed++;
     });
-    for (k in map) out.push(map[k]);
-    return { tasks: out, removed: removed };
+
+    return { tasks: [...byKey.values()], removed };
   };
 
-  C.dedupeCards = function (cards) {
-    var seen = {}, out = [], removed = 0;
-    (cards || []).forEach(function (c) {
-      if (!c) return;
-      var key = (c.subject || '') + '|' + String(c.q == null ? '' : c.q).trim();
-      if (seen[key]) { removed++; return; }
-      seen[key] = 1;
-      out.push(c);
+  /**
+   * 卡片去重：键为「科目|问题」，先出现的保留。
+   * @param {Array} cards
+   * @returns {{cards: Array, removed: number}}
+   */
+  core.dedupeCards = (cards) => {
+    const seen = new Set();
+    const kept = [];
+    let removed = 0;
+
+    (cards || []).forEach((card) => {
+      if (!card) return;
+      const key = `${card.subject || ''}|${String(card.q == null ? '' : card.q).trim()}`;
+      if (seen.has(key)) {
+        removed++;
+        return;
+      }
+      seen.add(key);
+      kept.push(card);
     });
-    return { cards: out, removed: removed };
+
+    return { cards: kept, removed };
   };
 
   /* ---------------- 学习统计 ---------------- */
 
-  /* 连续打卡天数：今天没打卡就从昨天起算，不让连续记录白白断掉 */
-  C.calcStreak = function (days, today) {
-    today = today || C.todayStr();
-    days = days || {};
-    var streak = 0;
-    var d = (days[today] && days[today].active) ? today : C.addDaysStr(today, -1);
-    while (days[d] && days[d].active) { streak++; d = C.addDaysStr(d, -1); }
+  /**
+   * 连续打卡天数。
+   * 今天还没打卡时从昨天起算——否则每天零点一过，连续记录会显示成 0，
+   * 用户会以为断签。
+   * @param {Object<string, {active?: boolean}>} days
+   * @param {string} [today]
+   * @returns {number}
+   */
+  core.calcStreak = (days, today) => {
+    const records = days || {};
+    const start = today || core.todayStr();
+    let cursor = records[start] && records[start].active ? start : core.addDaysStr(start, -1);
+    let streak = 0;
+    while (records[cursor] && records[cursor].active) {
+      streak++;
+      cursor = core.addDaysStr(cursor, -1);
+    }
     return streak;
   };
 
-  C.totalActiveDays = function (days) {
-    days = days || {};
-    return Object.keys(days).filter(function (k) { return days[k] && days[k].active; }).length;
-  };
+  /**
+   * 累计「有学习」的天数。
+   * @param {Object} days
+   * @returns {number}
+   */
+  core.totalActiveDays = (days) =>
+    Object.keys(days || {}).filter((date) => days[date] && days[date].active).length;
 
-  C.sumMinutes = function (sessions, date) {
-    return (sessions || []).filter(function (s) { return s && s.date === date; })
-      .reduce(function (a, s) { return a + (+s.minutes || 0); }, 0);
-  };
+  /**
+   * 某天的专注分钟数（脏数据里没有 minutes 时按 0 计，避免整列变 NaN）。
+   * @param {Array} sessions
+   * @param {string} date
+   * @returns {number}
+   */
+  core.sumMinutes = (sessions, date) =>
+    (sessions || [])
+      .filter((session) => session && session.date === date)
+      .reduce((sum, session) => sum + (+session.minutes || 0), 0);
 
   /* ---------------- SM-2 间隔重复 ---------------- */
 
-  /* 评分为 0~5：<3 视为答错（重新排队、难度上升）；>=3 视为通过。
-     纯函数：返回新卡片对象，不改传入的 card，也不读系统时间（now 可注入）。 */
-  C.srsGrade = function (card, q, now) {
-    now = now || C.todayStr();
-    var c = {};
-    for (var k in card) c[k] = card[k];
-    q = Math.max(0, Math.min(5, +q || 0));
-    c.ease = +c.ease || 2.5;
-    c.reps = +c.reps || 0;
-    c.interval = +c.interval || 0;
-    c.lapses = +c.lapses || 0;
+  /**
+   * 按评分推进一张卡片的复习计划（SM-2 的简化实现）。
+   *
+   * 顺序很重要：先用**本次评分前**的难度系数算间隔，再按评分调整系数。
+   * 评分 0~5，<3 视为答错：重置进度、当天重新出现。
+   * @param {Object} card 原卡片（不会被修改）
+   * @param {number} quality 0~5
+   * @param {string} [now] 'YYYY-MM-DD'，默认今天
+   * @returns {Object} 新卡片
+   */
+  core.srsGrade = (card, quality, now) => {
+    const today = now || core.todayStr();
+    const next = Object.assign({}, card);
+    const grade = Math.max(0, Math.min(5, +quality || 0));
 
-    if (q < 3) {
-      c.reps = 0; c.interval = 0; c.lapses = c.lapses + 1; c.due = now;
+    next.ease = +next.ease || 2.5;
+    next.reps = +next.reps || 0;
+    next.interval = +next.interval || 0;
+    next.lapses = +next.lapses || 0;
+
+    if (grade < 3) {
+      next.reps = 0;
+      next.interval = 0;
+      next.lapses += 1;
+      next.due = today;
     } else {
-      if (c.reps === 0) c.interval = 1;
-      else if (c.reps === 1) c.interval = 6;
-      else c.interval = Math.max(6, Math.round(c.interval * c.ease));
-      c.reps = c.reps + 1;
-      c.due = C.addDaysStr(now, c.interval);
+      if (next.reps === 0) next.interval = 1;
+      else if (next.reps === 1) next.interval = 6;
+      else next.interval = Math.max(6, Math.round(next.interval * next.ease));
+      next.reps += 1;
+      next.due = core.addDaysStr(today, next.interval);
     }
-    var delta = 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02);
-    c.ease = Math.max(1.3, +(c.ease + delta).toFixed(2));
-    c.lastAt = now;
-    return c;
+
+    const delta = 0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02);
+    next.ease = Math.max(1.3, +(next.ease + delta).toFixed(2));
+    next.lastAt = today;
+    return next;
   };
 
-  /* 待复习队列：到今天为止到期的卡片，按到期日从早到晚 */
-  C.buildQueue = function (cards, today) {
-    today = today || C.todayStr();
+  /**
+   * 今天该复习哪些卡片：到期日 ≤ 今天，按到期日从早到晚。
+   * @param {Array} cards
+   * @param {string} [today]
+   * @returns {string[]} 卡片 id
+   */
+  core.buildQueue = (cards, today) => {
+    const limit = today || core.todayStr();
     return (cards || [])
-      .filter(function (c) { return c && c.due && c.due <= today; })
-      .sort(function (a, b) { return a.due < b.due ? -1 : (a.due > b.due ? 1 : 0); })
-      .map(function (c) { return c.id; });
+      .filter((card) => card && card.due && card.due <= limit)
+      .sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0))
+      .map((card) => card.id);
   };
 
   /* ---------------- 多端合并（电脑 ↔ 手机局域网同步） ---------------- */
 
-  var MERGE_LISTS = ['tasks', 'cards', 'notes', 'errors', 'goals', 'checklist', 'milestones', 'materials', 'sessions'];
+  /** 需要按 id 求并集的集合字段。 */
+  const MERGE_LISTS = [
+    'tasks',
+    'cards',
+    'notes',
+    'errors',
+    'goals',
+    'checklist',
+    'milestones',
+    'materials',
+    'sessions',
+  ];
 
-  /* 按 id 求并集：prefer 里的同 id 条目优先，other 只补 prefer 没有的 */
-  C.unionById = function (prefer, other) {
-    var map = {}, out = [], k;
-    (prefer || []).forEach(function (x) { if (x && x.id) map[x.id] = x; });
-    (other || []).forEach(function (x) { if (x && x.id && !map[x.id]) map[x.id] = x; });
-    for (k in map) out.push(map[k]);
-    return out;
-  };
-
-  /* 评论记录去重：不用 JSON.stringify 全量比对，避免字段顺序不同导致漏判 */
-  C.reviewKey = function (r) {
-    if (!r) return '';
-    return [r.cardId || '', r.date || '', r.quality == null ? '' : r.quality, r.at || 0].join('|');
-  };
-  C.unionReviews = function (a, b) {
-    var seen = {}, out = [];
-    (a || []).concat(b || []).forEach(function (r) {
-      var k = C.reviewKey(r);
-      if (seen[k]) return;
-      seen[k] = 1;
-      out.push(r);
+  /**
+   * 按 id 求并集：prefer 优先，other 只补 prefer 没有的。
+   * @param {Array} prefer
+   * @param {Array} other
+   * @returns {Array}
+   */
+  core.unionById = (prefer, other) => {
+    const byId = new Map();
+    (prefer || []).forEach((item) => {
+      if (item && item.id) byId.set(item.id, item);
     });
-    return out;
+    (other || []).forEach((item) => {
+      if (item && item.id && !byId.has(item.id)) byId.set(item.id, item);
+    });
+    return [...byId.values()];
   };
 
-  /* 每日记录合并：保底项任一为真即真，单词数取大，任一端活跃即活跃 */
-  C.mergeDays = function (a, b) {
-    var out = JSON.parse(JSON.stringify(a || {}));
-    var d, i, len, x, y, ba, bb;
-    for (d in (b || {})) {
-      if (!out[d]) { out[d] = JSON.parse(JSON.stringify(b[d])); continue; }
-      x = out[d]; y = b[d];
-      ba = (x.baodi || []).slice();
-      bb = y.baodi || [];
-      len = Math.max(ba.length, bb.length, 3);
-      for (i = 0; i < len; i++) {
-        if (ba[i] === undefined) ba[i] = false;
-        if (bb[i]) ba[i] = true;
+  /**
+   * 复习记录的指纹。
+   * 不用 JSON.stringify 整条比对：字段顺序变化会导致同一条被当成两条。
+   * @param {Object} review
+   * @returns {string}
+   */
+  core.reviewKey = (review) => {
+    if (!review) return '';
+    return [review.cardId || '', review.date || '', review.quality == null ? '' : review.quality, review.at || 0].join(
+      '|',
+    );
+  };
+
+  /**
+   * 合并两端的复习记录并去重。
+   * @param {Array} a
+   * @param {Array} b
+   * @returns {Array}
+   */
+  core.unionReviews = (a, b) => {
+    const seen = new Set();
+    const merged = [];
+    (a || []).concat(b || []).forEach((review) => {
+      const key = core.reviewKey(review);
+      if (seen.has(key)) return;
+      seen.add(key);
+      merged.push(review);
+    });
+    return merged;
+  };
+
+  /**
+   * 合并两端的每日记录：保底项任一为真即真，记忆量取大，任一活跃即活跃。
+   * @param {Object} a
+   * @param {Object} b
+   * @returns {Object}
+   */
+  core.mergeDays = (a, b) => {
+    const merged = JSON.parse(JSON.stringify(a || {}));
+
+    Object.keys(b || {}).forEach((date) => {
+      if (!merged[date]) {
+        merged[date] = JSON.parse(JSON.stringify(b[date]));
+        return;
       }
-      x.baodi = ba;
-      x.words = Math.max(x.words || 0, y.words || 0);
-      x.active = !!(x.active || y.active);
-    }
-    return out;
-  };
+      const left = merged[date];
+      const right = b[date];
+      const baodi = (left.baodi || []).slice();
+      const otherBaodi = right.baodi || [];
+      const length = Math.max(baodi.length, otherBaodi.length, 3);
 
-  /* 整库合并：以 savedAt 较新的一端为底，再并上另一端的增量。
-     规则刻意的保守——合并只增不减，避免「一端删掉、另一端又同步回来」。 */
-  C.mergeStates = function (local, server) {
-    var l = local || {}, r = server || {};
-    var lTs = (l.meta && l.meta.savedAt) || 0;
-    var rTs = (r.meta && r.meta.savedAt) || 0;
-    var base = rTs > lTs ? r : l;
-    var other = base === r ? l : r;
-    var out = JSON.parse(JSON.stringify(base));
-    out.meta = Object.assign({}, out.meta || {}, { v: 1, savedAt: Math.max(lTs, rTs) });
-    for (var i = 0; i < MERGE_LISTS.length; i++) {
-      var k = MERGE_LISTS[i];
-      out[k] = C.unionById(out[k] || [], other[k] || []);
-    }
-    out.reviews = C.unionReviews(out.reviews || [], other.reviews || []);
-    out.days = C.mergeDays(out.days || {}, other.days || {});
-    return out;
-  };
-
-  /* ---------------- 计划骨架生成 ---------------- */
-
-  C.buildMilestones = function (tpl, examDate, uid) {
-    uid = uid || C.uid;
-    return ((tpl && tpl.milestones) || []).map(function (m) {
-      return { id: uid(), title: m.title, due: C.addDaysStr(examDate, m.off), cat: '节点', done: false };
+      for (let i = 0; i < length; i++) {
+        if (baodi[i] === undefined) baodi[i] = false;
+        if (otherBaodi[i]) baodi[i] = true;
+      }
+      left.baodi = baodi;
+      left.words = Math.max(left.words || 0, right.words || 0);
+      left.active = !!(left.active || right.active);
     });
+
+    return merged;
   };
 
-  C.buildPhases = function (tpl) {
-    return ((tpl && tpl.phases) || []).map(function (p, i) {
-      return { id: 'S' + (i + 1), name: p.n, time: p.t, lines: p.lines || [] };
+  /**
+   * 整库合并：以 savedAt 较新的一端为底，再并上另一端的增量。
+   * 规则刻意保守——合并只增不减，避免「一端删掉、另一端又同步回来」。
+   * @param {Object} local
+   * @param {Object} server
+   * @returns {Object}
+   */
+  core.mergeStates = (local, server) => {
+    const left = local || {};
+    const right = server || {};
+    const leftSavedAt = (left.meta && left.meta.savedAt) || 0;
+    const rightSavedAt = (right.meta && right.meta.savedAt) || 0;
+    const base = rightSavedAt > leftSavedAt ? right : left;
+    const other = base === right ? left : right;
+
+    const merged = JSON.parse(JSON.stringify(base));
+    merged.meta = Object.assign({}, merged.meta || {}, {
+      v: 1,
+      savedAt: Math.max(leftSavedAt, rightSavedAt),
     });
+
+    MERGE_LISTS.forEach((key) => {
+      merged[key] = core.unionById(merged[key] || [], other[key] || []);
+    });
+    merged.reviews = core.unionReviews(merged.reviews || [], other.reviews || []);
+    merged.days = core.mergeDays(merged.days || {}, other.days || {});
+    return merged;
   };
 
-  C.sameDay = function (a, b) { return C.diffDays(a, b) === 0; };
+  /* ---------------- 计划骨架 ---------------- */
 
-  /* ---------------- 导出 ---------------- */
+  /**
+   * 按模板生成关键节点：日期 = 考试日 + 偏移量（负数表示提前）。
+   * @param {Object} template
+   * @param {string} examDate
+   * @param {Function} [uid] 可注入的 id 生成器（便于测试断言）
+   * @returns {Array}
+   */
+  core.buildMilestones = (template, examDate, uid) => {
+    const makeId = uid || core.uid;
+    return ((template && template.milestones) || []).map((milestone) => ({
+      id: makeId(),
+      title: milestone.title,
+      due: core.addDaysStr(examDate, milestone.off),
+      cat: '节点',
+      done: false,
+    }));
+  };
 
-  var api = C;
-  if (typeof module !== 'undefined' && module.exports) module.exports = api; // Node / 测试
-  if (root) root.SGCore = api;                                              // 浏览器
+  /**
+   * 按模板生成阶段（编号 S1、S2…）。
+   * @param {Object} template
+   * @returns {Array}
+   */
+  core.buildPhases = (template) =>
+    ((template && template.phases) || []).map((phase, index) => ({
+      id: `S${index + 1}`,
+      name: phase.n,
+      time: phase.t,
+      lines: phase.lines || [],
+    }));
+
+  /* ---------------- 双环境导出 ---------------- */
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = core; // Node / 测试
+  if (root) root.SGCore = core; // 浏览器
 })(typeof window !== 'undefined' ? window : null);

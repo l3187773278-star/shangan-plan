@@ -7,7 +7,15 @@
   "scripts": {
     "start": "node serve.js",
     "test": "node --test test/",
-    "check": "node --check core.js && node --check app.js && node --check serve.js && node --check sw.js"
+    "check": "node --check core.js && node --check js/bus.js && node --check js/exams.js && node --check js/ui.js && node --check js/data.js && node --check js/timer.js && node --check js/views.js && node --check js/boot.js && node --check serve.js && node --check sw.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "globals": "^15.11.0",
+    "prettier": "^3.3.3"
   },
   "keywords": ["备考", "PWA", "间隔重复", "SM-2", "vanilla-js", "zero-dependency"],
   "license": "MIT",

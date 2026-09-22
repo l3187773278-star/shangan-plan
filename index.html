@@ -515,7 +515,15 @@
 </div>
 <div id="modal-root"></div>
 
+<!-- 模块按依赖顺序加载：core(纯逻辑) → bus(通信) → exams(模板) → ui(基础层)
+     → data(状态) → timer(番茄钟) → views(页面) → boot(接线与启动) -->
 <script src="core.js"></script>
-<script src="app.js"></script>
+<script src="js/bus.js"></script>
+<script src="js/exams.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/data.js"></script>
+<script src="js/timer.js"></script>
+<script src="js/views.js"></script>
+<script src="js/boot.js"></script>
 </body>
 </html>

@@ -1,9 +1,13 @@
 /* Shangan Plan Service Worker v4
    Strategy: network-first (always fresh when online),
    falls back to cache when offline. Old caches are purged on activate. */
-var CACHE = 'shangan-gen-v2';
+var CACHE = 'shangan-gen-v3';
 var ASSETS = [
-  './', './index.html', './styles.css', './core.js', './app.js', './manifest.json',
+  './', './index.html', './styles.css',
+  './core.js',
+  './js/bus.js', './js/exams.js', './js/ui.js', './js/data.js',
+  './js/timer.js', './js/views.js', './js/boot.js',
+  './manifest.json',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'
 ];
 

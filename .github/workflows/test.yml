@@ -31,3 +31,11 @@ jobs:
       # 在 Node 22+ 会被当成「执行 test 这个模块」而报 Cannot find module。
       - name: 全部测试（55 条）
         run: node --test
+
+      # lint 单独跑一个版本：它是 devDependency，跑之前需要装依赖（测试与语法检查不需要）。
+      # 过去这一步不存在，于是 `npm run lint` 在本地恒红（95 条 no-var）也没人发现。
+      - name: ESLint（Node 24）
+        if: matrix.node == '24'
+        run: |
+          npm install --no-audit --no-fund
+          npm run lint

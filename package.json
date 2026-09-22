@@ -6,7 +6,7 @@
   "main": "core.js",
   "scripts": {
     "start": "node serve.js",
-    "test": "node --test test/",
+    "test": "node --test",
     "check": "node --check core.js && node --check js/bus.js && node --check js/exams.js && node --check js/ui.js && node --check js/data.js && node --check js/timer.js && node --check js/views.js && node --check js/boot.js && node --check serve.js && node --check sw.js",
     "lint": "eslint .",
     "format": "prettier --write ."

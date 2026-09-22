@@ -399,6 +399,43 @@
     return merged;
   };
 
+  /* ---------------- AI 请求组装（DeepSeek） ---------------- */
+
+  /**
+   * 组装一次 DeepSeek「AI 出题 / 批改」请求。
+   *
+   * 单独抽成纯函数，是因为这里踩过一个**本地怎么测都正常、一上线就坏**的坑：
+   * - 本机代理（`启动.bat` 起 serve.js，页面是 http://localhost）：key 放在请求体里，
+   *   由服务端转成 Authorization 头（见 serve.js 的 /api/deepseek）；
+   * - 直连官方接口（部署到 GitHub Pages 这类 https 站点时走这条）：**必须自己带
+   *   Authorization 头**。只把 key 塞进 body 官方不认，直接返回 401 Authentication Fails。
+   *
+   * @param {{deepseekKey?: string}} settings
+   * @param {Array<{role: string, content: string}>} messages
+   * @param {{useProxy: boolean, model?: string}} options
+   * @returns {{url: string, init: {method: string, headers: Object, body: string}}}
+   */
+  core.buildDeepSeekRequest = (settings, messages, options) => {
+    const key = String((settings && settings.deepseekKey) || '').trim();
+    const useProxy = !!(options && options.useProxy);
+    const payload = {
+      model: (options && options.model) || 'deepseek-chat',
+      messages,
+      temperature: 0.7,
+      max_tokens: 4000,
+      response_format: { type: 'json_object' },
+    };
+    const headers = { 'Content-Type': 'application/json' };
+
+    if (useProxy) payload.key = key;
+    else headers.Authorization = `Bearer ${key}`;
+
+    return {
+      url: useProxy ? 'api/deepseek' : 'https://api.deepseek.com/chat/completions',
+      init: { method: 'POST', headers, body: JSON.stringify(payload) },
+    };
+  };
+
   /* ---------------- 计划骨架 ---------------- */
 
   /**

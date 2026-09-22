@@ -4,9 +4,12 @@
    上岸计划 · 通用备考版 —— 核心逻辑自动化测试
 
    跑法（不需要 npm install，零依赖）：
-     node --test test/
+     node --test
    只看某一个文件：
      node --test test/core.test.js
+
+   注：用不带参数的 `node --test`（自己发现 test/ 下的用例）。写成 `node --test test/`
+   在 Node 20 上能跑，但 Node 22 起会把 `test/` 当成要执行的模块而报 Cannot find module。
 
    为什么这些用例值得存在：
    这些函数出错时不会抛异常，而是「数据悄悄丢失或错乱」——
@@ -334,4 +337,47 @@ test('导出面：core.js 同时能在浏览器（window.SGCore）与 Node（req
   assert.equal(typeof CORE.mergeStates, 'function');
   var keys = Object.keys(CORE);
   assert.ok(keys.length >= 18, '导出的函数数量异常：' + keys.length);
+});
+
+/* ---------------- AI 请求组装（DeepSeek） ---------------- */
+
+test('AI 请求：直连官方接口时必须带 Authorization 头，body 里不能有 key', function () {
+  var req = CORE.buildDeepSeekRequest(
+    { deepseekKey: 'sk-test-123' },
+    [{ role: 'user', content: '出 3 道题' }],
+    { useProxy: false },
+  );
+
+  assert.equal(req.url, 'https://api.deepseek.com/chat/completions');
+  assert.equal(req.init.method, 'POST');
+  assert.equal(req.init.headers.Authorization, 'Bearer sk-test-123');
+
+  var body = JSON.parse(req.init.body);
+  assert.equal(body.model, 'deepseek-chat');
+  assert.deepEqual(body.messages, [{ role: 'user', content: '出 3 道题' }]);
+
+  // 这条是真实踩过的坑：官方只认 Authorization 头，key 放 body 会返回
+  // 401 Authentication Fails。而这条路径**只在 https（部署之后）才走**——
+  // 本地用 启动.bat 跑的是代理路径，永远测不出来。
+  assert.equal(body.key, undefined, '直连时不应把 key 放进 body');
+});
+
+test('AI 请求：本机代理交给 serve.js 加鉴权头，key 放 body', function () {
+  var req = CORE.buildDeepSeekRequest({ deepseekKey: ' sk-test-123 ' }, [], { useProxy: true });
+
+  assert.equal(req.url, 'api/deepseek', '代理模式应走同源相对路径');
+  assert.equal(req.init.headers.Authorization, undefined, '代理模式由服务端加 Authorization');
+  assert.equal(JSON.parse(req.init.body).key, 'sk-test-123', 'key 应交服务端并去掉两端空格');
+});
+
+test('AI 请求：settings 缺失或 Key 为空时不抛错（提示先填 Key 是界面层的职责）', function () {
+  [{}, { deepseekKey: '   ' }, null, undefined].forEach(function (settings) {
+    var direct = CORE.buildDeepSeekRequest(settings, [], { useProxy: false });
+    assert.equal(direct.init.headers['Content-Type'], 'application/json');
+    assert.equal(direct.init.headers.Authorization, 'Bearer ');
+    assert.ok(direct.init.body, '即使没有 key 也应给出完整请求体');
+
+    var proxy = CORE.buildDeepSeekRequest(settings, [], { useProxy: true });
+    assert.equal(JSON.parse(proxy.init.body).key, '');
+  });
 });

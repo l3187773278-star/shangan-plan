@@ -1,5 +1,7 @@
 # 上岸计划 · 通用备考版
 
+[![tests](https://github.com/l3187773278-star/shangan-plan/actions/workflows/test.yml/badge.svg)](https://github.com/l3187773278-star/shangan-plan/actions/workflows/test.yml)
+
 > 一个**零依赖、零构建**的多考试备考助手（PWA）。首次打开走三步配置向导，自动生成备考阶段、关键节点与起步任务；
 > 之后负责倒计时、每日打卡、番茄钟、间隔重复复习与学习统计。数据只存在你自己的浏览器里。
 
@@ -90,21 +92,26 @@ Windows 上也可以直接双击 **`启动.bat`**（内部同样是 `node serve.
 ## 测试
 
 ```bash
-npm test          # node --test test/  →  50 条用例
+npm test          # node --test  →  55 条用例
 npm run check     # 全部脚本的语法检查
 npm run lint      # ESLint（需先 npm install）
 npm run format    # Prettier（需先 npm install）
 ```
 
-测试全部零依赖，用 Node 18+ 内置的 `node:test`。
+测试全部零依赖，用 Node 18 起内置的 `node:test`。
 
-**算法与数据（`test/core.test.js`，27 条）**
+> 用不带参数的 `node --test`（自己发现 `test/` 下的用例）。写成 `node --test test/`
+> 在 Node 20 上能跑，但 Node 22 起会把 `test/` 当成要执行的模块而报 `Cannot find module`。
+
+**算法与数据（`test/core.test.js`，30 条）**
 
 - SM-2：间隔 1 → 6 → 间隔×难度系数的增长顺序、答错重置与当天重排、难度系数下限 1.3、评分 3/2 的通过边界、旧卡片缺字段时的安全升级；
 - 多端合并：以较新一端为底且不丢另一端记录、同 id 冲突取向、反复合并幂等、每日打卡「任一为真即真」、复习记录去重；
 - 日期：跨月/跨年/闰年加减、天数差、夏令时下稳定；
 - 数据清理：任务按「日期|科目|标题」去重并优先保留已完成、卡片按「科目|问题」去重；
 - 统计：连续打卡（今天没打卡从昨天起算）、累计打卡、某日专注时长。
+- AI 请求组装：直连官方接口必须带 `Authorization` 头、key 不能只放在 body 里，代理模式则相反。
+  （这条路径**只有部署到 https 才会走到**，本地用 `启动.bat` 永远测不出来，所以专门钉了用例。）
 
 **接线契约（`test/contract.test.js`，12 条）**
 
@@ -116,7 +123,7 @@ npm run format    # Prettier（需先 npm install）
 - 各模块挂载的 `SG.*` 命名空间与调用方一致，`boot.js` 调用的成员确实被导出；
 - SM-2 公式只存在一份，`core.js` 不含 DOM/存储依赖。
 
-**启动冒烟（`test/boot.test.js`，11 条）**
+**启动冒烟（`test/boot.test.js`，13 条）**
 
 在没有浏览器的环境里真跑一遍启动：用最小假 DOM 依次执行 8 个脚本，断言
 
@@ -124,6 +131,7 @@ npm run format    # Prettier（需先 npm install）
 - 启动过程不写 `console.error`/`console.warn`；
 - 十余个关键容器**确实被写入了内容**（不只是「没报错」），逐个视图切换都不抛错；
 - 模拟点击能走到数据层并落盘；番茄钟能启停；存储不可用时会弹窗而不是静默丢数据。
+- 模拟一次 AI 出题：https 下必须直连官方接口并带上鉴权头，http 下则走本地代理——两条路都钉死。
 
 ## 技术要点
 

@@ -22,3 +22,6 @@ shangan-backup-*.json
 test-results/
 edge-profile/
 *.png.tmp
+
+# 改前备份目录：属于本地治理流程，不该进仓库（要公开到 GitHub，更不能跟着上线）
+_备份/

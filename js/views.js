@@ -542,35 +542,24 @@ window.SG = window.SG || {};
   /* ---------------- AI 出题 ---------------- */
 
   /**
-   * 调用 DeepSeek。服务器模式下走本机代理（避开 CORS 并保护 Key），
-   * 直接打开文件时直连官方接口。
+   * 调用 DeepSeek。两条路（都走 core.buildDeepSeekRequest 组装，便于单测）：
+   * - 本机代理：http://localhost 由 serve.js 提供页面时走它，避开 CORS 并由服务端带 Key；
+   * - 直连官方：部署到 https 站点时走它，此时**必须自己带 Authorization 头**。
    * @param {Array<{role: string, content: string}>} messages
    * @param {(content: string) => void} onOk
    * @param {() => void} [onErr]
    */
   function callDeepSeek(messages, onOk, onErr) {
-    const key = (SG.state.settings.deepseekKey || '').trim();
-    const useProxy = location.protocol === 'http:';
-    const url = useProxy ? 'api/deepseek' : 'https://api.deepseek.com/chat/completions';
-    const payload = {
-      key,
-      model: 'deepseek-chat',
-      messages,
-      temperature: 0.7,
-      max_tokens: 4000,
-      response_format: { type: 'json_object' },
-    };
+    const request = CORE.buildDeepSeekRequest(SG.state.settings, messages, {
+      useProxy: location.protocol === 'http:',
+    });
     const fail = (message) => {
       toast(`AI 调用失败：${message}`);
       if (onErr) onErr();
     };
 
     try {
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      fetch(request.url, request.init)
         .then((res) => {
           res
             .json()

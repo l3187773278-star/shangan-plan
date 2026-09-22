@@ -155,6 +155,7 @@ function loadApp(options = {}) {
 
   const document = makeDocument(htmlIds, store);
   const errors = [];
+  const requests = [];
   const pendingTimeouts = [];
 
   const consoleFake = {
@@ -193,8 +194,22 @@ function loadApp(options = {}) {
     scrollTo() {},
     URL: { createObjectURL: () => 'blob:', revokeObjectURL() {} },
     localStorage: localStorageFake,
-    fetch: () =>
-      Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ ok: true, data: null, savedAt: 0 }) }),
+    /** 记录每一次请求：断言要看的是「应用到底发了什么」，只看「没报错」不够。 */
+    fetch: (url, init) => {
+      requests.push({ url: String(url), init: init || {} });
+      // AI 请求给一份合法响应，好让成功路径（解析出题目）也能被断言
+      if (String(url).includes('deepseek')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              choices: [{ message: { content: '{"questions":[{"q":"为什么三次握手？","a":"同步双方序号"}]}' } }],
+            }),
+        });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ ok: true, data: null, savedAt: 0 }) });
+    },
   };
 
   const context = vm.createContext({});
@@ -226,7 +241,7 @@ function loadApp(options = {}) {
 
   if (options.runTimeouts !== false) pendingTimeouts.splice(0).forEach((fn) => fn());
 
-  return { SG: window.SG, document, store, errors };
+  return { SG: window.SG, document, store, errors, requests };
 }
 
 /** 当前日期（与 core.js 的 todayStr 一致）。 */
@@ -400,6 +415,44 @@ test('交互：加一条任务后，今日页与落盘数据都更新', () => {
     JSON.parse(store.get('shangan-gen-v1')).tasks.some((t) => t.title === '新增的任务'),
     '新任务未落盘',
   );
+});
+
+test('交互：部署到 https 后，AI 出题直连官方接口且必须带 Authorization 头', async () => {
+  const { SG, requests } = loadApp({
+    protocol: 'https:',
+    hostname: 'l3187773278-star.github.io',
+    href: 'https://l3187773278-star.github.io/shangan/',
+    seedData: sampleState(),
+  });
+  SG.state.settings.deepseekKey = 'sk-test-abc';
+
+  SG.views.generateAIQuestions();
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const call = requests.find((r) => r.url.includes('deepseek'));
+  assert.ok(call, `应发出一次 AI 请求，实际：${requests.map((r) => r.url).join(', ') || '（一次都没有）'}`);
+  assert.equal(call.url, 'https://api.deepseek.com/chat/completions', 'https 下应直连官方接口');
+  // 回归点：这条路径只在部署后才会走，本地用 启动.bat（http）永远走不到，
+  // 所以必须在这里把「鉴权头」钉死——没有它上线就是 401。
+  assert.equal(call.init.headers.Authorization, 'Bearer sk-test-abc', '直连必须自己带 Authorization 头');
+  assert.equal(JSON.parse(call.init.body).key, undefined, '直连时 key 不应出现在 body 里');
+  assert.ok(SG.views.aiState.items.length > 0, '拿到合法 JSON 后应解析出题目');
+});
+
+test('交互：本机（http）跑 启动.bat 时，AI 出题仍走代理且 key 在 body 里', async () => {
+  const { SG, requests } = loadApp({ seedData: sampleState() }); // 默认 protocol 为 http:
+  SG.state.settings.deepseekKey = 'sk-test-abc';
+
+  SG.views.generateAIQuestions();
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const call = requests.find((r) => r.url.includes('deepseek'));
+  assert.ok(call, '本机应发出一次 AI 请求');
+  assert.equal(call.url, 'api/deepseek', 'http 下应走同源代理（由 serve.js 转发并加鉴权头）');
+  assert.equal(call.init.headers.Authorization, undefined, '代理模式由服务端加 Authorization');
+  assert.equal(JSON.parse(call.init.body).key, 'sk-test-abc', 'key 交给服务端');
 });
 
 /* ---------------- 异常环境 ---------------- */

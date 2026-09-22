@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22', '24']
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 本项目零依赖，测试与语法检查都不需要 npm install
+      - name: 语法检查
+        run: |
+          for f in core.js js/*.js serve.js sw.js; do
+            node --check "$f"
+            echo "OK  $f"
+          done
+
+      # 用不带参数的 `node --test` 自动发现用例；写成 `node --test test/`
+      # 在 Node 22+ 会被当成「执行 test 这个模块」而报 Cannot find module。
+      - name: 全部测试（55 条）
+        run: node --test

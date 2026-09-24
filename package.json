@@ -18,7 +18,7 @@
     "prettier": "^3.3.3"
   },
   "keywords": ["备考", "PWA", "间隔重复", "SM-2", "vanilla-js", "zero-dependency"],
-  "author": "李兆",
+  "author": "李光兆",
   "license": "MIT",
   "engines": {
     "node": ">=18"
